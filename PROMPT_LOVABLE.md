@@ -1,0 +1,402 @@
+# CARTEL CLUB — Prompt para gerar o PWA no Lovable
+
+> **Como usar:** o Lovable trabalha muito melhor em etapas do que com um prompt gigante único.
+> Cole a **Fase 1** primeiro e deixe gerar. Depois vá colando as fases seguintes, uma por vez,
+> conferindo o resultado entre elas. As seções "Design System" e "Modelo de dados" são a base —
+> se o Lovable se perder em alguma fase, recole a seção relevante junto com o pedido.
+
+---
+
+## FASE 1 — Fundação, design system e navegação
+
+```
+Crie um PWA mobile-first chamado CARTEL CLUB: uma rede social brasileira para entusiastas de
+carros preparados. É uma mistura de Instagram com Tinder para o mundo automotivo — cada pessoa
+monta seu perfil, cadastra os carros da garagem com ficha técnica completa e compartilha fotos
+dos projetos em estilo editorial.
+
+STACK E REQUISITOS TÉCNICOS
+- React + TypeScript + Vite + Tailwind + shadcn/ui.
+- Supabase para autenticação, banco de dados (Postgres com RLS) e storage de imagens.
+- PWA instalável de verdade: manifest.webmanifest completo (name "CARTEL CLUB", short_name
+  "Cartel Club", display "standalone", display_override ["standalone","minimal-ui"],
+  orientation "portrait", lang "pt-BR", background_color "#050505", theme_color "#050505",
+  ícones 192/512 + um maskable 512), service worker com cache do app shell para funcionar
+  offline, meta tags do iOS (apple-mobile-web-app-capable, apple-touch-icon,
+  apple-mobile-web-app-status-bar-style "black-translucent").
+- Respeitar safe areas do iPhone: usar env(safe-area-inset-bottom) e
+  env(safe-area-inset-top) nas barras fixas, e viewport com viewport-fit=cover.
+- Toda a interface em português do Brasil.
+- Layout travado em coluna única, largura máxima de 440px centralizada no desktop,
+  com o fundo preto sangrando nas laterais (simula um aparelho). Zero scroll horizontal.
+
+DESIGN SYSTEM — "Velocità Obsidian"
+Estética dark-mode-first, premium, inspirada em editorial automotivo e instrumentação de
+cockpit. Minimalismo + glassmorphism atmosférico: pretos profundos, camadas acrílicas
+translúcidas, bordas hairline de 1px e formas em pílula. Sem cores decorativas — a energia
+cromática vem exclusivamente das fotos dos carros.
+
+Cores (defina como CSS variables e tokens do Tailwind):
+- void / fundo base: #050505
+- superfície base (cards, trilhos): #0A0A0A
+- superfície elevada (grupos aninhados): #121212
+- vidro translúcido: rgba(255,255,255,0.04)
+- vidro elevado (hover/ativo): rgba(255,255,255,0.08)
+- borda hairline: rgba(255,255,255,0.08)
+- borda ativa/foco: rgba(255,255,255,0.22)
+- texto primário: #FFFFFF
+- texto secundário: #8E8E93
+- texto terciário / desabilitado: #48484A
+- azul de precisão (só para selos verificados e telemetria crítica): #0071E3
+- verde de status (só para "homologado", ganho de potência vs OEM, setup ativo): #00E07A
+
+Tipografia: Plus Jakarta Sans em todo o app (Google Fonts).
+- display-hero: 56px/60 peso 800, tracking -0.035em (mobile: 38px/42, -0.03em)
+- headline-xl: 40px/48 peso 700, -0.03em (mobile: 28px/34, -0.025em)
+- headline-lg: 24px/30 peso 700, -0.02em
+- headline-md: 20px/26 peso 600, -0.015em
+- headline-sm: 17px/22 peso 600, -0.01em
+- body-lg: 17px/24 | body-md: 15px/21 | body-sm: 13px/18 (peso 400)
+- label-caps: 11px/14 peso 700, UPPERCASE, tracking 0.08em
+- label-ui: 14px/18 peso 600
+Números técnicos (potência, torque, tempos de volta, pressão) sempre com
+font-feature-settings: 'tnum' para alinhamento tabular.
+
+Formas:
+- Pílula (border-radius 9999px) para botões, chips, filtros, campo de busca e a dock inferior.
+- Cards grandes: 24px a 32px de raio, com corner smoothing.
+- Superfícies internas aninhadas: 16px a 20px.
+- Toda forma mantém uma borda interna de 1px para não sangrar no preto do fundo.
+
+Profundidade (sem drop shadow difuso — o fundo é preto demais):
+- Nível 1 (cards): #0A0A0A + borda 1px rgba(255,255,255,0.06).
+- Nível 2 (vidro flutuante): rgba(20,20,20,0.65) + backdrop-filter: blur(28px) saturate(180%),
+  com hairline em gradiente no topo.
+- Nível 3 (modais e dock): rgba(28,28,30,0.78) + blur(40px) +
+  box-shadow: 0 20px 48px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.12).
+
+Componentes base:
+- Botão primário: pílula branca sólida #FFFFFF com texto preto, label-ui. Ao tocar:
+  opacidade 0.88 e scale(0.98).
+- Botão secundário: pílula de vidro rgba(255,255,255,0.08), borda rgba(255,255,255,0.12),
+  texto branco.
+- Botões de ícone: circulares, 44px no mobile, em vidro, com ícone de traço 1.5px a 20px.
+- Chips/filtros: altura 32px, px-16, fundo rgba(255,255,255,0.05), borda
+  rgba(255,255,255,0.08), texto #8E8E93. Estado ativo: fundo branco sólido, texto preto e
+  halo sutil 0 0 16px rgba(255,255,255,0.18).
+- Campo de busca: pílula de 48px, fundo rgba(255,255,255,0.06), borda 1px
+  rgba(255,255,255,0.1), placeholder #8E8E93; no foco a borda vai para rgba(255,255,255,0.4).
+- Listas: sem fundo, separadas por divisores hairline rgba(255,255,255,0.06) com inset de 16px.
+- Use ícones estilo Material Symbols Outlined (traço fino) em todo o app.
+
+NAVEGAÇÃO
+Dock inferior flutuante em pílula, centralizada, com bottom-6, padding 8px, vidro
+rgba(15,15,15,0.75), blur 32px e borda rgba(255,255,255,0.12). Quatro destinos, com o
+item ativo em destaque (círculo branco sólido com ícone preto):
+1. Feed (/)
+2. Descobrir (/descobrir)
+3. Garagem / meu perfil (/garagem)
+4. Notificações (/notificacoes)
+Além disso, um botão flutuante de "publicar" acessível a partir do Feed.
+
+Nesta primeira fase, crie a estrutura de rotas, o design system completo, a dock de navegação,
+o setup do PWA e telas com dados fictícios (mock) coerentes com o universo automotivo
+brasileiro — Interlagos, Curitiba, Golf GTI, Civic, Porsche 911 GT3, Subaru, marcas como
+FuelTech, Brembo, Öhlins, Enkei, Advan. Ainda não conecte o Supabase.
+```
+
+---
+
+## FASE 2 — Supabase: modelo de dados, autenticação e onboarding
+
+```
+Agora conecte o Supabase e implemente autenticação e o modelo de dados completo.
+
+AUTENTICAÇÃO
+- Cadastro e login por e-mail/senha e também por magic link.
+- Após o primeiro login, um onboarding obrigatório em etapas:
+  1. Escolher o TIPO DE PERFIL: "Piloto" (entusiasta dono de carro) ou "Oficina"
+     (preparadora/prestador de serviço). Essa escolha muda o perfil e é destacada visualmente.
+  2. Definir @username único, nome de exibição, cidade e estado.
+  3. Piloto: cadastrar o primeiro carro da garagem (pode pular).
+     Oficina: informar especialidades (ex.: Turbo, Suspensão, Dyno, Remap/ECU, Solda,
+     Preparação de motor, Freios, Aerodinâmica) e endereço.
+- Rotas protegidas: quem não está logado só vê login/cadastro.
+
+TABELAS (Postgres, todas com RLS habilitado)
+
+profiles
+  id uuid PK (referencia auth.users), username text unique, display_name text,
+  type text check in ('piloto','oficina'), avatar_url text, bio text, city text, state text,
+  member_number serial, is_verified bool default false, is_pro bool default false,
+  specialties text[] (só oficina), address text (só oficina), created_at timestamptz
+
+cars
+  id uuid PK, owner_id uuid -> profiles, nickname text (ex.: "VW Golf GTI Stage 3"),
+  brand text, model text, year int,
+  drivetrain text check in ('dianteira','traseira','4x4'),
+  aspiration text check in ('aspirado','turbo','supercharger','turbo+supercharger','eletrico'),
+  engine text (ex.: "2.0 TSI Gen3"), displacement text (ex.: "2.0L 16V"),
+  gearbox text (ex.: "7-speed DSG"),
+  suspension text check in ('original','coilover','a ar','rebaixamento fixo','competicao'),
+  suspension_detail text (ex.: "Öhlins TTX"),
+  wheels text (ex.: 'Enkei RPF1 17"'), tires text (ex.: "Advan A050 235/40 R18"),
+  brakes text (ex.: "Brembo 6-pot 380mm"),
+  hp int (potência declarada), whp int (potência aferida na roda),
+  torque_kgfm numeric, boost_bar numeric, fuel text (ex.: "E100", "Gasolina", "Etanol"),
+  ecu text (ex.: "FuelTech FT550"),
+  stage text (ex.: "Stage 3"),
+  build_status text check in ('original','em construcao','pronto para pista','show car'),
+  is_primary bool (o carro principal da garagem), cover_url text, created_at timestamptz
+
+car_mods  (as "tags" de preparação que aparecem como chips)
+  id uuid PK, car_id uuid -> cars, category text (motor, suspensao, freios, rodas,
+  aerodinamica, seguranca, eletronica), label text (ex.: "TURBO IS38")
+
+posts
+  id uuid PK, author_id uuid -> profiles, car_id uuid -> cars (opcional),
+  caption text, location text, created_at timestamptz
+
+post_media
+  id uuid PK, post_id uuid -> posts, url text, position int
+
+likes        (post_id, user_id) chave primária composta, created_at
+comments     id uuid PK, post_id, author_id, body text, parent_id (para respostas), created_at
+follows      (follower_id, following_id) chave primária composta, created_at
+
+swipes       id uuid PK, user_id, car_id, direction text check in ('like','pass','boost'),
+             created_at — unique(user_id, car_id)
+matches      id uuid PK, user_a uuid, user_b uuid, created_at — criado automaticamente
+             (via trigger) quando dois usuários dão like um no carro do outro
+
+dyno_certificates
+  id uuid PK, car_id uuid -> cars, whp numeric, torque_kgfm numeric, boost_bar numeric,
+  rpm int, fuel text, dyno_shop text (ex.: "Servitec 4x4"), dyno_type text (ex.: "Rolo"),
+  gain_vs_oem int, certified_at date, auth_hash text unique (ex.: "#DYNO-SP-99214-GTI"),
+  document_url text, status text check in ('pendente','homologado','recusado')
+
+circuits     id uuid PK, name text, city text, state text, is_official bool
+lap_times    id uuid PK, user_id, car_id, circuit_id, time_ms int, sector1_ms int,
+             top_speed_kmh int, is_verified bool (via transponder/GPS oficial), recorded_at date
+
+notifications id uuid PK, user_id (destinatário), actor_id, type text
+             (like, comment, follow, match, dyno_homologado, lap_record), entity_id, read bool,
+             created_at
+
+REGRAS DE RLS
+- Todo mundo autenticado pode LER profiles, cars, posts, post_media, comments, likes, follows,
+  circuits, lap_times e dyno_certificates com status 'homologado'.
+- Cada usuário só pode INSERIR/EDITAR/APAGAR os próprios registros (profiles.id = auth.uid(),
+  cars.owner_id = auth.uid(), posts.author_id = auth.uid(), etc.).
+- swipes e notifications: cada usuário só enxerga as próprias linhas.
+- matches: visível apenas para user_a e user_b.
+- dyno_certificates: o dono do carro cria como 'pendente'; só um admin muda para 'homologado'.
+
+STORAGE
+- Bucket público "media" para fotos de posts e capas de carro; bucket "avatars" para fotos de
+  perfil. Comprimir a imagem no cliente antes do upload (máx. 1600px no maior lado, ~85% de
+  qualidade) e mostrar barra de progresso.
+
+Contadores (seguidores, curtidas, comentários) devem vir de views ou colunas mantidas por
+trigger — nunca contar no cliente carregando todas as linhas.
+```
+
+---
+
+## FASE 3 — Feed social (o "Instagram")
+
+```
+Implemente a tela de Feed (rota /), que é o coração do app.
+
+TOPO
+- Barra fixa com o wordmark "CARTEL CLUB •" centralizado, ícone de menu à esquerda e ícone de
+  mensagens à direita (com bolinha indicadora quando houver não lidas).
+- Logo abaixo, uma régua horizontal rolável de "stories": o primeiro item é "NOVO POST" (círculo
+  com +), seguido dos perfis que o usuário segue, cada avatar em círculo com anel e o @username
+  embaixo em label pequeno.
+
+CARD DE POST (o elemento mais importante do app — capriche)
+- Cabeçalho: avatar, @username, selo de verificado, tipo do perfil ("• Piloto" ou "• Oficina"),
+  localização com ícone de pin, tempo relativo ("Há 2h"), botão "Seguir"/"Seguindo" e menu "…".
+- Foto do carro em destaque, proporção 4:5, ocupando a largura toda, com cantos arredondados.
+- Sobre a foto, no topo à esquerda, badges em pílula de vidro: "DYNO CERTIFIED" (quando o carro
+  tem certificado homologado) e o stage do carro (ex.: "STAGE 3").
+- No canto inferior direito da foto, um badge escuro com o número principal em destaque:
+  ex. "180 WHP" (número grande em branco, unidade menor em cinza).
+- Barra de ações: curtir (coração), comentar, compartilhar e, à direita, salvar.
+- Linha "Curtido por @track_daily e outras 1.420 pessoas" com avatares empilhados.
+- FICHA TÉCNICA DO PROJETO: um bloco de vidro logo abaixo, com o título em label-caps e o
+  número do build à direita (ex.: "Build #084"), contendo três métricas lado a lado —
+  POTÊNCIA (ex.: 180 WHP), TORQUE (ex.: 28.4 KGFM), PRESSÃO (ex.: 1.6 BAR).
+- Abaixo, os chips de preparação do carro (car_mods): ex. "TURBO IS38", "FWD Torsen",
+  "Brembo 4-Piston", 'Enkei RPF1 17"', "FuelTech FT550".
+- Legenda com @username em negrito seguido do texto, e link "Ver todos os N comentários".
+
+INTERAÇÕES
+- Curtir com duplo toque na foto, com animação de coração; o botão reflete o estado.
+- Curtir, comentar e seguir com atualização otimista (a UI responde na hora, sincroniza depois).
+- Tela de comentários (/post/:id) com lista, respostas aninhadas em um nível e campo de envio
+  fixo no rodapé.
+- Scroll infinito com paginação e skeletons de carregamento no estilo do design system.
+- Pull-to-refresh no topo.
+- O feed mostra posts de quem o usuário segue; se ele ainda não segue ninguém, mostrar posts
+  populares e um convite para ir em Descobrir.
+```
+
+---
+
+## FASE 4 — Descobrir (o "Tinder")
+
+```
+Implemente a tela Descobrir (/descobrir): uma pilha de cards de carros para dar match.
+
+TOPO
+- Wordmark "CARTEL CLUB •" e, abaixo, a linha de contexto: "RADAR: 25KM • TRACK SETUPS".
+- Linha de filtros em chips: um filtro de preparação (ex.: "TRACK / STAGE 2+"), um de
+  localização com ícone de pin (ex.: "CURITIBA") e, à direita, o contador da sessão ("01 / 15").
+- Os filtros devem abrir um painel com: raio em km, tipo de tração, faixa de potência (WHP),
+  aspiração, stage e tipo de perfil (piloto/oficina).
+
+CARD DE DESCOBERTA
+- Card grande em vidro ocupando quase toda a tela, com as bordas dos próximos cards da pilha
+  aparecendo sutilmente atrás.
+- Foto do carro 4:5 no topo, com um gradiente escuro na base protegendo o texto.
+- Badge "FEATURED SPEC" com ícone de raio no canto superior direito quando for destaque.
+- Sobre a foto, na parte de baixo: código do projeto em label-caps (ex.:
+  "PROJECT #992-GT3RS") seguido do status em verde ("• ACTIVE TRACK SETUP"); o nome do carro
+  em display grande (ex.: "PORSCHE 911 GT3") com selo de verificado; a linha de subtítulo
+  (ex.: "CLUBSPORT // STAGE 3"); e a linha do dono: @username • local • distância ("12km").
+- Grade 2x2 de telemetria em blocos de vidro, cada um com o rótulo em label-caps à esquerda e
+  o valor em negrito à direita: POWER (520 WHP), ENGINE (4.0L FLAT-6 NA), GEARBOX (7-SPEED PDK),
+  TIRES (CUP 2 R 335).
+- Rodapé do card: "FULL TELEMETRY & DYNO SHEET" com o link "Ver ficha completa ↗" que leva
+  para /carro/:id.
+
+AÇÕES
+- Arrastar o card para a direita = curtir/seguir; para a esquerda = pular. O card acompanha o
+  dedo com rotação proporcional, e aparece um selo "SEGUIR" (verde, à direita) ou "PULAR"
+  (vermelho, à esquerda) conforme a direção. Soltar antes do limiar volta o card ao lugar.
+- Fileira de botões circulares embaixo: desfazer último swipe, pular (X), boost (raio, destaque
+  do perfil — limitado por dia), curtir (coração, botão branco em destaque) e abrir filtros.
+- Deve funcionar tanto com toque quanto com mouse (pointer events), e ter atalhos de teclado
+  (setas) no desktop.
+- Quando houver match recíproco, mostrar um toast fixo na parte de baixo:
+  "NEW GARAGE MATCH: Golf GTI Mk7.5 Stage 2 — 2m ago", e gravar em matches + notifications.
+- Registrar cada swipe para nunca repetir o mesmo carro para o mesmo usuário.
+- Estado vazio elegante quando acabarem os cards, sugerindo aumentar o raio do radar.
+```
+
+---
+
+## FASE 5 — Perfil e Garagem
+
+```
+Implemente o perfil (/garagem para o próprio, /perfil/:username para os outros).
+
+CABEÇALHO DO PERFIL
+- Foto em destaque, @username, badge de nível ("PRO PILOT" ou "OFICINA"), tipo e localização
+  ("Piloto & Enthusiast • São Paulo, SP"), e dois selos em pílula: "TELEMETRIA ATIVA" e
+  "Membro #409".
+- Botão "Editar Garagem" (perfil próprio) ou "Seguir"/"Seguindo" + "Mensagem" (outros perfis).
+- Grade 2x2 de estatísticas em cards de vidro, número grande em cima e rótulo em label-caps
+  embaixo: CARROS NA GARAGEM, TRACK DAYS, PISTAS HOMOLOGADAS, SEGUIDORES.
+
+SELO DYNO CERTIFIED
+- Bloco destacado com ícone de selo, título "Dyno Certified Official Stamp", badge verde
+  "HOMOLOGADO" e a descrição da certificação ("Certificação de Potência em Rolo — Servitec 4x4
+  • Calibrado em 14/Out/2024").
+- Linha com "HASH DE AUTENTICIDADE" e o código (ex.: "#DYNO-SP-99214-GTI") com botão de
+  download do laudo.
+- Três métricas: RODA (WHP) com o ganho em verde embaixo ("+46 whp vs OEM"),
+  TORQUE NA RODA (com o RPM: "@ 3.400 RPM") e PRESSÃO DE TURBO (com o combustível: "E100").
+
+CIRCUITOS HOMOLOGADOS
+- Seção com título e botão "+ Anexar". Carrossel horizontal de cards de pista, cada um com o
+  estado ("SÃO PAULO • SP"), badge "OFICIAL", nome do autódromo, e a melhor volta:
+  "MELHOR VOLTA (PB) 1:54.218", com "Setor 1: 41.2s" e "Top Speed 218 km/h" em verde.
+- Explicação em texto pequeno: "Pistas com cronometragem oficial via GPS transponder anexadas
+  ao piloto".
+
+GARAGEM ATIVA
+- Seção com o carro principal, com um carrossel (indicador "1 / 3") se houver mais de um.
+- Card grande com a foto do carro, badge "SETUP DE PISTA" no topo e o selo redondo
+  "SELO CARTEL DYNO CERTIFIED".
+- Abaixo da foto: label "SETUP DE COMPETIÇÃO • 2021", o nome em display
+  ("VW Golf GTI Stage 3") e a linha resumo ("180 WHP Dyno Certified • Garrett Powermax Turbo
+  • Suspensão Coilover Clubsport").
+- Grade 2x2 de especificações: MOTORIZAÇÃO (2.0 TSI Gen 3 / IS38 Hybrid Turbo),
+  POTÊNCIA AFERIDA (180.4 WHP / Servitec 4x4 Rolo, em verde), PNEUS DE PISTA
+  (Trofeo R / 235/40 R18 Forged), FREIOS / PASTILHAS (Brembo 6-Pot / Discos Flutuantes 380mm).
+- Dois botões: "Gerenciar Mapa de Injeção (ECU)" (primário, branco) e
+  "Histórico de Manutenção" (secundário, vidro).
+
+OUTROS VEÍCULOS CADASTRADOS
+- Lista compacta com "Ver todos (3)", cada linha com miniatura quadrada da foto, nome do carro,
+  resumo em label pequeno (ex.: "410 WHP • Stage 2 Bootmod3" / "Garagem Secundária") e chevron.
+
+PERFIL DE OFICINA
+- Mesma estrutura, mas trocando as seções de piloto por: especialidades em chips, endereço com
+  mapa, botão "Solicitar orçamento", galeria de trabalhos realizados (posts da oficina) e a
+  lista de carros que a oficina preparou (marcados por outros usuários).
+
+TELAS RELACIONADAS
+- /carro/:id — ficha técnica completa do carro: galeria de fotos, todas as specs organizadas em
+  seções (Motor, Transmissão, Suspensão, Freios, Rodas e Pneus, Eletrônica), lista completa de
+  modificações, certificados de dyno, tempos de volta e todos os posts daquele carro.
+- /garagem/carro/novo e /garagem/carro/:id/editar — formulário de cadastro do carro em etapas,
+  com todos os campos do modelo de dados, selects para tração/aspiração/suspensão/stage e
+  upload da foto de capa.
+```
+
+---
+
+## FASE 6 — Publicar, notificações, busca e ajustes finais
+
+```
+Complete o app com as telas restantes e o polimento.
+
+PUBLICAR (/publicar)
+- Seleção de uma ou mais fotos da galeria ou câmera, com prévia e reordenação.
+- Vincular o post a um carro da garagem (select com miniatura).
+- Legenda com contador de caracteres, campo de localização (ex.: "Interlagos, SP") e opção de
+  marcar a oficina responsável pela preparação.
+- Toggle para exibir a ficha técnica do carro junto do post.
+- Upload com barra de progresso e compressão no cliente.
+
+NOTIFICAÇÕES (/notificacoes)
+- Lista agrupada por período (Hoje / Esta semana / Antes), com avatar do autor, texto da ação
+  e miniatura do post à direita. Tipos: curtida, comentário, novo seguidor, match,
+  dyno homologado e recorde de volta.
+- Indicador de não lidas na dock.
+
+BUSCA (/buscar)
+- Campo de busca em pílula, com abas: Pilotos, Oficinas, Carros e Pistas.
+- Filtros por marca, modelo, tração, faixa de potência (WHP), aspiração, stage, cidade/estado.
+- Grade de resultados no estilo editorial (fotos grandes).
+
+CONFIGURAÇÕES (/configuracoes)
+- Editar perfil, trocar tipo de perfil, privacidade (perfil público/privado), preferências do
+  radar (raio, tipos de carro), notificações, sair da conta e excluir conta.
+
+POLIMENTO FINAL
+- Estados de carregamento com skeletons no estilo do design system (nunca spinners genéricos).
+- Estados vazios com ilustração/texto no tom da marca, sempre com uma ação sugerida.
+- Tratamento de erro com toast discreto e opção de tentar novamente.
+- Transições rápidas e táteis (150–250ms), com scale(0.98) no toque dos botões. Respeitar
+  prefers-reduced-motion.
+- Acessibilidade: contraste adequado, área de toque mínima de 44px, labels em todos os campos,
+  navegação por teclado no desktop e aria-labels nos botões de ícone.
+- Otimizar imagens (lazy loading, srcset) e garantir que o app abra rápido em 4G.
+```
+
+---
+
+## Observações importantes para o Lovable
+
+- **Não invente cores fora da paleta.** O app é monocromático por decisão de design; azul
+  `#0071E3` e verde `#00E07A` só aparecem em selos e status.
+- **Nunca use avatar circular no card de descoberta** — ali a foto é sempre retangular 4:5.
+- **Os números técnicos são o produto.** WHP, torque, pressão e tempo de volta precisam estar
+  sempre em destaque tipográfico, com números tabulares.
+- O app é **mobile-first**: desenhe para 390px de largura e só depois adapte para telas maiores.
+- Se algo ficar pesado, priorize nesta ordem: Feed → Descobrir → Perfil/Garagem → resto.
