@@ -1,55 +1,83 @@
-# Garagem+
+# Cartel Club
 
-PWA de rede social para entusiastas de carros preparados: perfis de **Piloto** e **Oficina**, ficha técnica do carro (tração, aspiração, suspensão, rodas, pneus, HP/WHP), feed de fotos estilo Instagram e uma tela de descoberta estilo Tinder (arraste para seguir/pular projetos).
+Rede social para entusiastas de carros preparados — perfis de **Piloto** e **Oficina**, ficha
+técnica completa do carro, feed de fotos estilo Instagram, descoberta por swipe estilo Tinder
+(com match automático) e garagem com fichas técnicas detalhadas.
+
+Full stack real: banco Postgres, API própria com autenticação e autorização, upload de imagem
+com validação de verdade — nada aqui é mock.
 
 ## Stack
 
-- React + TypeScript + Vite
-- React Router
-- Tailwind CSS v4
-- `vite-plugin-pwa` (manifest + service worker, instalável e com cache offline)
-- Supabase (opcional) para auth, banco de dados e storage de fotos
+- **web/** — React + TypeScript + Vite + Tailwind v4 + `vite-plugin-pwa` (PWA instalável e
+  com cache offline). Tema preto/branco/vermelho, Plus Jakarta Sans.
+- **server/** — Node + Express + TypeScript + PostgreSQL (via `pg`). Autenticação por
+  cookie httpOnly assinado (JWT), senhas com bcrypt, validação com Zod, upload com
+  verificação de assinatura binária do arquivo (não confia em extensão nem Content-Type).
 
 ## Rodando localmente
 
+### 1. Banco de dados
+
+Precisa de um Postgres rodando (local ou gerenciado). Para criar um banco de desenvolvimento
+local:
+
 ```bash
+sudo service postgresql start   # ou o equivalente no seu sistema
+sudo -u postgres psql <<'SQL'
+CREATE USER cartelclub WITH PASSWORD 'cartelclub_dev_pw';
+CREATE DATABASE cartelclub OWNER cartelclub;
+SQL
+```
+
+### 2. Backend
+
+```bash
+cd server
+cp .env.example .env   # ajuste DATABASE_URL e gere um JWT_SECRET novo:
+#   sed -i "s/troque-este-segredo-antes-de-ir-para-producao/$(openssl rand -hex 32)/" .env
 npm install
-npm run dev
+npm run migrate   # aplica server/src/db/schema.sql
+npm run dev       # http://localhost:8787
 ```
 
-O app funciona **sem nenhuma configuração extra**, usando dados de exemplo em `src/data/mock.ts` (perfis, carros e posts fictícios).
-
-## Estrutura
-
-- `src/types/domain.ts` — modelo de dados (Profile, Car, CarSpec, Post, Comment)
-- `src/data/mock.ts` — dados de exemplo usados enquanto não há backend
-- `src/pages/` — Feed, Descobrir (swipe), Perfil, Detalhe do Carro, Publicar
-- `src/components/` — BottomNav, TopBar, PostCard, SpecSheet
-- `src/lib/supabase.ts` — cliente Supabase, ativado automaticamente quando as env vars estiverem configuradas
-
-## Conectando um backend real (Supabase)
-
-1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
-3. Crie as tabelas `profiles`, `cars`, `posts`, `likes`, `comments` e `follows` seguindo os tipos de `src/types/domain.ts` (com RLS habilitado, cada usuário só edita seus próprios dados).
-4. Crie um bucket no Storage para as fotos dos posts.
-5. Troque os imports de `src/data/mock.ts` pelas queries ao Supabase (`src/lib/supabase.ts`) nas páginas — comece por `Feed.tsx` e `Upload.tsx`.
-
-Enquanto essas variáveis não existirem, o app continua funcionando normalmente com os dados mock.
-
-## Build de produção
+### 3. Frontend
 
 ```bash
-npm run build
-npm run preview
+cd web
+npm install
+npm run dev       # http://localhost:5173 — proxya /api e /uploads para o backend
 ```
 
-O build gera o service worker e o manifest da PWA (`dist/sw.js`, `dist/manifest.webmanifest`), prontos para deploy em qualquer host estático (Vercel, Netlify, Cloudflare Pages, S3+CloudFront etc.). Depois do deploy em HTTPS, o navegador oferece "Instalar app" tanto no Android quanto no desktop; no iOS, a instalação é via Safari → Compartilhar → "Adicionar à Tela de Início".
+Abra `http://localhost:5173`, crie uma conta e siga o onboarding.
 
-## Próximos passos sugeridos
+## Segurança — o que já está implementado
 
-- Autenticação (email/senha ou magic link via Supabase Auth)
-- Upload real de fotos (Supabase Storage) com compressão no cliente
-- Curtidas/comentários persistidos e contadores em tempo real (Supabase Realtime)
-- Notificações push (Web Push) para curtidas, comentários e novos seguidores
-- Busca/filtro por marca, tipo de tração, faixa de potência
+- **Autorização em toda escrita**: o dono de um recurso é sempre derivado da sessão
+  (`req.userId`), nunca de um campo enviado pelo cliente. Editar/apagar carro, post ou
+  comentário de outra pessoa retorna 404 (a query já filtra por dono na cláusula `WHERE`).
+- **Upload validado por assinatura binária** (magic bytes), não por extensão do nome nem
+  pelo `Content-Type` declarado — um arquivo `.png` que não é PNG de verdade é rejeitado.
+  Cada usuário só escreve dentro da própria pasta (`uploads/{userId}/...`).
+- **Rate limit** dedicado e mais apertado em `/auth/login` e `/auth/register` (força bruta),
+  mais um limite geral na API.
+- **Senhas** com bcrypt (custo 12), nunca armazenadas nem logadas em texto puro.
+- **Mensagens de erro genéricas** em login/registro — não dá pra descobrir se um e-mail já
+  existe por tentativa e erro.
+- **Constraints no banco** (CHECK, UNIQUE, FK com `ON DELETE CASCADE`) como segunda linha de
+  defesa, além da validação da API com Zod.
+- **Texto livre nunca vira HTML**: legendas e comentários são renderizados como texto puro
+  pelo React (que já escapa por padrão) — sem `dangerouslySetInnerHTML` em nenhum lugar.
+- **Trilha de auditoria** (`audit_log`) já modelada no schema para ações de moderação
+  (homologar certificado de dyno, verificar perfil etc.) — falta ligar a rota de admin.
+
+## O que falta para produção
+
+- Trocar o Postgres local por um gerenciado (Neon, Railway, RDS) — só muda `DATABASE_URL`.
+- Trocar o storage local em disco por um bucket de verdade (S3, R2, Supabase Storage) —
+  só muda `server/src/routes/upload.ts`.
+- HTTPS + `secure: true` nos cookies (`server/src/lib/auth.ts` já liga isso sozinho quando
+  `NODE_ENV=production`).
+- Rota de admin para homologar certificados de dyno (hoje só o schema existe).
+- Testes automatizados (o fluxo foi validado manualmente ponta a ponta nesta sessão, mas
+  não há suíte de testes ainda).

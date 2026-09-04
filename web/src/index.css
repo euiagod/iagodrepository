@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --void: #050505;
+  --surface: #0a0a0a;
+  --surface-alt: #121212;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-elevated: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(255, 255, 255, 0.22);
+  --text: #ffffff;
+  --text-muted: #8e8e93;
+  --text-dim: #48484a;
+  --brand: #ff1f17;
+  --brand-deep: #c1110a;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+.tabular-nums {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
+}
