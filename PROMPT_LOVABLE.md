@@ -5,6 +5,15 @@
 > conferindo o resultado entre elas. As seções "Design System" e "Modelo de dados" são a base —
 > se o Lovable se perder em alguma fase, recole a seção relevante junto com o pedido.
 
+> **Sobre o backend e segurança:** o prompt usa Supabase (Postgres) — não porque seja a opção
+> mais frágil e sim porque é a que o Lovable integra nativamente como **Lovable Cloud**, sem
+> você precisar copiar URL/chave de projeto na mão (é aí que a maioria dos apps feitos com IA
+> fica insegura: não é o banco que falha, é alguém esquecer de restringir quem pode ler/editar
+> cada linha). Quando o Lovable perguntar qual backend usar, **escolha Lovable Cloud** — mesmo
+> Postgres por baixo, mas gerenciado dentro do próprio editor, com menos chance de erro de
+> configuração. A Fase 2 abaixo tem uma seção de SEGURANÇA dedicada, com checklist de teste;
+> não pule ela mesmo se estiver ansioso para ver a interface pronta.
+
 ---
 
 ## FASE 1 — Fundação, design system e navegação
@@ -146,7 +155,10 @@ PRONTO QUANDO (confira antes de seguir para a próxima fase):
 ## FASE 2 — Supabase: modelo de dados, autenticação e onboarding
 
 ```
-Agora conecte o Supabase e implemente autenticação e o modelo de dados completo.
+Agora conecte o backend (Lovable Cloud / Supabase) e implemente autenticação, o modelo de
+dados completo e as regras de segurança abaixo. Trate a seção SEGURANÇA como parte obrigatória
+da entrega desta fase, não como um extra — um app social com fotos e perfis públicos é alvo
+óbvio de gente tentando ler dado de outro usuário ou abusar de curtidas/swipes.
 
 AUTENTICAÇÃO
 - Cadastro e login por e-mail/senha e também por magic link.
@@ -229,9 +241,42 @@ REGRAS DE RLS
 - dyno_certificates: o dono do carro cria como 'pendente'; só um admin muda para 'homologado'.
 
 STORAGE
-- Bucket público "media" para fotos de posts e capas de carro; bucket "avatars" para fotos de
-  perfil. Comprimir a imagem no cliente antes do upload (máx. 1600px no maior lado, ~85% de
-  qualidade) e mostrar barra de progresso.
+- Bucket "media" (leitura pública, escrita restrita — só o dono do post/carro grava, e o
+  caminho do arquivo inclui o user_id, ex.: media/{user_id}/{post_id}/{arquivo}, com uma
+  política que só permite gravar dentro da própria pasta) para fotos de posts e capas de
+  carro; bucket "avatars" no mesmo esquema para fotos de perfil.
+- Comprimir a imagem no cliente antes do upload (máx. 1600px no maior lado, ~85% de qualidade),
+  rejeitar no cliente E no servidor qualquer arquivo que não seja imagem (valide o
+  content-type real, não a extensão do nome) e limitar o tamanho (ex.: 8MB por foto).
+
+SEGURANÇA — trate cada item abaixo como obrigatório, não como sugestão
+- Nunca confie em nenhum ID vindo do cliente. Toda escrita usa auth.uid() do lado do servidor
+  para decidir o dono da linha — o formulário nunca envia "sou o usuário X", o backend é quem
+  sabe disso pela sessão autenticada.
+- RLS "deny by default": crie a política de leitura/escrita explícita para cada tabela; se uma
+  tabela não tem política nenhuma, ninguém lê nem escreve nela — nunca desligue o RLS "pra
+  testar mais rápido" e esquecer de religar.
+- Teste a RLS de verdade: crie duas contas de teste (A e B) e confirme que a conta B recebe erro
+  de permissão ao tentar editar/apagar um post, carro, comentário ou curtida que pertence à
+  conta A — inclusive tentando direto pela API, não só escondendo o botão na interface.
+- Nunca exponha a service role key / chave de administrador no código do cliente — ela só pode
+  existir em uma função de servidor (edge function), nunca em uma variável acessível pelo
+  navegador. Homologar um certificado de dyno (mudar status para 'homologado') só pode
+  acontecer por uma rota de admin que valida a permissão no servidor, nunca por uma escrita
+  direta que o cliente possa disparar.
+- Sanitize tudo que é texto livre (legenda, comentário, bio, nome do carro): renderize sempre
+  como texto puro, nunca injete em innerHTML/dangerouslySetInnerHTML — isso fecha a porta pra
+  XSS sem precisar de biblioteca extra. Limite o tamanho de cada campo de texto no banco.
+- Rate limit nas ações que podem ser abusadas em massa: swipes, curtidas, comentários e envio
+  de mensagem. Se o Lovable Cloud tiver esse recurso pronto, use-o; senão, pelo menos garanta
+  no banco que não dá pra duplicar a mesma ação (ex.: unique(user_id, car_id) em swipes já
+  cobre isso) e limite a frequência no lado do servidor, não só desabilitando o botão na tela.
+- Toda ação de moderação (homologar dyno, verificar perfil, remover post denunciado) grava
+  quem fez, quando e o motivo em uma tabela de auditoria — nunca é uma edição silenciosa.
+- Senhas seguem as regras padrão do provedor de auth (mínimo de caracteres, sem lista de senhas
+  óbvias); nunca implemente hash de senha por conta própria.
+- Nenhuma chave, senha ou segredo é commitada no código-fonte — tudo vem de variável de
+  ambiente/segredo do projeto.
 
 Contadores (seguidores, curtidas, comentários) devem vir de views ou colunas mantidas por
 trigger — nunca contar no cliente carregando todas as linhas.
@@ -239,8 +284,14 @@ trigger — nunca contar no cliente carregando todas as linhas.
 PRONTO QUANDO:
 - Consigo criar conta, sair, entrar de novo e continuo logado ao recarregar a página.
 - O onboarding grava o perfil no banco e não aparece de novo nos próximos logins.
-- Um usuário não consegue editar nem apagar dados de outro (teste a RLS com duas contas).
-- O upload da foto de perfil funciona e a imagem aparece na tela depois de salva.
+- Testei com duas contas (A e B): a conta B não consegue ler dado privado, nem editar ou
+  apagar nenhum registro que pertence à conta A — nem pela interface, nem chamando a API
+  direto.
+- Toda tabela tem política de RLS explícita; nenhuma ficou sem política "porque ainda não deu
+  tempo".
+- A service role key não aparece em nenhum arquivo que vai para o navegador.
+- O upload da foto de perfil funciona, rejeita arquivo que não é imagem, e a imagem aparece na
+  tela depois de salva.
 ```
 
 ---
@@ -421,7 +472,8 @@ PUBLICAR (/publicar)
 - Legenda com contador de caracteres, campo de localização (ex.: "Interlagos, SP") e opção de
   marcar a oficina responsável pela preparação.
 - Toggle para exibir a ficha técnica do carro junto do post.
-- Upload com barra de progresso e compressão no cliente.
+- Upload com barra de progresso e compressão no cliente. Só permite vincular carros e marcar
+  oficinas que existem de verdade no banco (nunca um texto livre virando referência solta).
 
 NOTIFICAÇÕES (/notificacoes)
 - Lista agrupada por período (Hoje / Esta semana / Antes), com avatar do autor, texto da ação
@@ -471,3 +523,6 @@ PRONTO QUANDO (o app está pronto para uso real):
   completa e simplifique o visual — nunca o contrário. Tela bonita que não faz nada
   não conta como entregue.
 - Se algo ficar pesado, priorize nesta ordem: Feed → Descobrir → Perfil/Garagem → resto.
+- **Segurança não é opcional nem é "depois".** A seção SEGURANÇA da Fase 2 vale para o app
+  inteiro — cada tabela nova criada nas fases seguintes (posts, swipes, notificações etc.)
+  precisa nascer com política de RLS, não só as que já existiam na Fase 2.
