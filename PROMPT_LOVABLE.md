@@ -15,6 +15,19 @@ carros preparados. É uma mistura de Instagram com Tinder para o mundo automotiv
 monta seu perfil, cadastra os carros da garagem com ficha técnica completa e compartilha fotos
 dos projetos em estilo editorial.
 
+REGRA INEGOCIÁVEL — O APP TEM QUE SER 100% FUNCIONAL
+Isto não é um protótipo nem uma maquete clicável. Todo botão, campo, filtro, aba e gesto
+precisa executar a ação de verdade e refletir o resultado na tela e no banco de dados.
+- Se um controle aparece na tela, ele funciona. Se ainda não dá pra fazer funcionar, não coloque.
+- Proibido: botão decorativo, link que não leva a lugar nenhum, aba que não troca de conteúdo,
+  alert() no lugar da funcionalidade, "em breve", "coming soon", TODO, ou tela de placeholder.
+- A partir da Fase 2 nada de dado chumbado no código: tudo lê e escreve no Supabase.
+- Toda ação persiste. Se eu curtir um post, fechar o app e abrir de novo, a curtida está lá.
+- Todo formulário valida de verdade e mostra a mensagem de erro no campo certo.
+- Toda tela tem os três estados implementados: carregando, vazio e erro.
+- Antes de encerrar cada fase, percorra você mesmo o fluxo completo no preview, encontre o que
+  está quebrado e conserte. Só entregue a fase depois que ela funcionar de ponta a ponta.
+
 STACK E REQUISITOS TÉCNICOS
 - React + TypeScript + Vite + Tailwind + shadcn/ui.
 - Supabase para autenticação, banco de dados (Postgres com RLS) e storage de imagens.
@@ -47,8 +60,24 @@ Cores (defina como CSS variables e tokens do Tailwind):
 - texto primário: #FFFFFF
 - texto secundário: #8E8E93
 - texto terciário / desabilitado: #48484A
-- azul de precisão (só para selos verificados e telemetria crítica): #0071E3
-- verde de status (só para "homologado", ganho de potência vs OEM, setup ativo): #00E07A
+- vermelho de marca (o ÚNICO acento do app): #FF1F17
+- vermelho profundo (estados pressionados e preenchimentos maiores): #C1110A
+
+A paleta é PRETO, BRANCO E VERMELHO. Não existe nenhuma outra cor na interface — sem azul,
+sem verde, sem laranja, sem gradiente colorido, sem cor de "sucesso" ou "erro" fora dessa
+paleta. A única cor que aparece além de preto, branco e vermelho é a das fotos dos carros.
+
+Onde o vermelho pode aparecer (e só aí, sempre em dose pequena):
+- selo de verificado, selo "DYNO CERTIFIED" e badges de destaque ("FEATURED SPEC");
+- item ativo da navegação e indicador de notificação não lida;
+- coração de curtida quando ativo;
+- números de destaque quando forem o assunto do bloco (ex.: o ganho "+46 WHP vs OEM");
+- ações destrutivas e o selo "PULAR" do swipe;
+- detalhes finos: uma régua de 2px, o ponto de status, a borda de um card em foco.
+
+Onde o vermelho NÃO pode aparecer: fundo de tela inteira, blocos grandes preenchidos, texto
+corrido, fundo de card. Confirmação e sucesso são feitos em BRANCO (preenchimento branco sólido
+com texto preto), não em vermelho e nunca em verde.
 
 Tipografia: Plus Jakarta Sans em todo o app (Google Fonts).
 - display-hero: 56px/60 peso 800, tracking -0.035em (mobile: 38px/42, -0.03em)
@@ -103,6 +132,13 @@ Nesta primeira fase, crie a estrutura de rotas, o design system completo, a dock
 o setup do PWA e telas com dados fictícios (mock) coerentes com o universo automotivo
 brasileiro — Interlagos, Curitiba, Golf GTI, Civic, Porsche 911 GT3, Subaru, marcas como
 FuelTech, Brembo, Öhlins, Enkei, Advan. Ainda não conecte o Supabase.
+
+PRONTO QUANDO (confira antes de seguir para a próxima fase):
+- As quatro abas da dock navegam de verdade e cada rota renderiza sua própria tela.
+- O app instala no celular (aparece "Adicionar à tela de início") e abre em tela cheia,
+  sem a barra do navegador.
+- Depois do primeiro acesso, o app abre offline.
+- Nenhum botão da interface é decorativo.
 ```
 
 ---
@@ -199,6 +235,12 @@ STORAGE
 
 Contadores (seguidores, curtidas, comentários) devem vir de views ou colunas mantidas por
 trigger — nunca contar no cliente carregando todas as linhas.
+
+PRONTO QUANDO:
+- Consigo criar conta, sair, entrar de novo e continuo logado ao recarregar a página.
+- O onboarding grava o perfil no banco e não aparece de novo nos próximos logins.
+- Um usuário não consegue editar nem apagar dados de outro (teste a RLS com duas contas).
+- O upload da foto de perfil funciona e a imagem aparece na tela depois de salva.
 ```
 
 ---
@@ -241,6 +283,12 @@ INTERAÇÕES
 - Pull-to-refresh no topo.
 - O feed mostra posts de quem o usuário segue; se ele ainda não segue ninguém, mostrar posts
   populares e um convite para ir em Descobrir.
+
+PRONTO QUANDO:
+- Curtir, descurtir, comentar e seguir gravam no banco e sobrevivem ao recarregar.
+- O feed pagina de verdade conforme eu rolo, sem recarregar tudo.
+- Criando um post com a conta A, ele aparece no feed da conta B que segue A.
+- Os contadores de curtidas e comentários batem com o banco.
 ```
 
 ---
@@ -263,7 +311,7 @@ CARD DE DESCOBERTA
 - Foto do carro 4:5 no topo, com um gradiente escuro na base protegendo o texto.
 - Badge "FEATURED SPEC" com ícone de raio no canto superior direito quando for destaque.
 - Sobre a foto, na parte de baixo: código do projeto em label-caps (ex.:
-  "PROJECT #992-GT3RS") seguido do status em verde ("• ACTIVE TRACK SETUP"); o nome do carro
+  "PROJECT #992-GT3RS") seguido do status em vermelho ("• ACTIVE TRACK SETUP"); o nome do carro
   em display grande (ex.: "PORSCHE 911 GT3") com selo de verificado; a linha de subtítulo
   (ex.: "CLUBSPORT // STAGE 3"); e a linha do dono: @username • local • distância ("12km").
 - Grade 2x2 de telemetria em blocos de vidro, cada um com o rótulo em label-caps à esquerda e
@@ -274,8 +322,8 @@ CARD DE DESCOBERTA
 
 AÇÕES
 - Arrastar o card para a direita = curtir/seguir; para a esquerda = pular. O card acompanha o
-  dedo com rotação proporcional, e aparece um selo "SEGUIR" (verde, à direita) ou "PULAR"
-  (vermelho, à esquerda) conforme a direção. Soltar antes do limiar volta o card ao lugar.
+  dedo com rotação proporcional, e aparece um selo "SEGUIR" (branco sólido com texto preto,
+  à direita) ou "PULAR" (contorno vermelho, à esquerda) conforme a direção. Soltar antes do limiar volta o card ao lugar.
 - Fileira de botões circulares embaixo: desfazer último swipe, pular (X), boost (raio, destaque
   do perfil — limitado por dia), curtir (coração, botão branco em destaque) e abrir filtros.
 - Deve funcionar tanto com toque quanto com mouse (pointer events), e ter atalhos de teclado
@@ -284,6 +332,12 @@ AÇÕES
   "NEW GARAGE MATCH: Golf GTI Mk7.5 Stage 2 — 2m ago", e gravar em matches + notifications.
 - Registrar cada swipe para nunca repetir o mesmo carro para o mesmo usuário.
 - Estado vazio elegante quando acabarem os cards, sugerindo aumentar o raio do radar.
+
+PRONTO QUANDO:
+- O swipe funciona com o dedo no celular e com o mouse no desktop.
+- Um carro que já recebeu swipe nunca reaparece para o mesmo usuário.
+- Match recíproco cria o registro em matches e gera a notificação para os dois lados.
+- Mudar os filtros muda de verdade os carros que aparecem na pilha.
 ```
 
 ---
@@ -302,18 +356,18 @@ CABEÇALHO DO PERFIL
   embaixo: CARROS NA GARAGEM, TRACK DAYS, PISTAS HOMOLOGADAS, SEGUIDORES.
 
 SELO DYNO CERTIFIED
-- Bloco destacado com ícone de selo, título "Dyno Certified Official Stamp", badge verde
+- Bloco destacado com ícone de selo, título "Dyno Certified Official Stamp", badge vermelho
   "HOMOLOGADO" e a descrição da certificação ("Certificação de Potência em Rolo — Servitec 4x4
   • Calibrado em 14/Out/2024").
 - Linha com "HASH DE AUTENTICIDADE" e o código (ex.: "#DYNO-SP-99214-GTI") com botão de
   download do laudo.
-- Três métricas: RODA (WHP) com o ganho em verde embaixo ("+46 whp vs OEM"),
+- Três métricas: RODA (WHP) com o ganho em vermelho embaixo ("+46 whp vs OEM"),
   TORQUE NA RODA (com o RPM: "@ 3.400 RPM") e PRESSÃO DE TURBO (com o combustível: "E100").
 
 CIRCUITOS HOMOLOGADOS
 - Seção com título e botão "+ Anexar". Carrossel horizontal de cards de pista, cada um com o
   estado ("SÃO PAULO • SP"), badge "OFICIAL", nome do autódromo, e a melhor volta:
-  "MELHOR VOLTA (PB) 1:54.218", com "Setor 1: 41.2s" e "Top Speed 218 km/h" em verde.
+  "MELHOR VOLTA (PB) 1:54.218", com "Setor 1: 41.2s" e "Top Speed 218 km/h" em vermelho.
 - Explicação em texto pequeno: "Pistas com cronometragem oficial via GPS transponder anexadas
   ao piloto".
 
@@ -325,7 +379,7 @@ GARAGEM ATIVA
   ("VW Golf GTI Stage 3") e a linha resumo ("180 WHP Dyno Certified • Garrett Powermax Turbo
   • Suspensão Coilover Clubsport").
 - Grade 2x2 de especificações: MOTORIZAÇÃO (2.0 TSI Gen 3 / IS38 Hybrid Turbo),
-  POTÊNCIA AFERIDA (180.4 WHP / Servitec 4x4 Rolo, em verde), PNEUS DE PISTA
+  POTÊNCIA AFERIDA (180.4 WHP / Servitec 4x4 Rolo, o número em vermelho), PNEUS DE PISTA
   (Trofeo R / 235/40 R18 Forged), FREIOS / PASTILHAS (Brembo 6-Pot / Discos Flutuantes 380mm).
 - Dois botões: "Gerenciar Mapa de Injeção (ECU)" (primário, branco) e
   "Histórico de Manutenção" (secundário, vidro).
@@ -346,6 +400,12 @@ TELAS RELACIONADAS
 - /garagem/carro/novo e /garagem/carro/:id/editar — formulário de cadastro do carro em etapas,
   com todos os campos do modelo de dados, selects para tração/aspiração/suspensão/stage e
   upload da foto de capa.
+
+PRONTO QUANDO:
+- Cadastrar e editar um carro grava todos os campos da ficha técnica no banco.
+- Definir outro carro como principal muda o que aparece em "Garagem Ativa".
+- Abrindo o perfil de outra pessoa, vejo os dados dela e o botão seguir funciona.
+- A ficha completa do carro (/carro/:id) mostra specs, modificações e posts reais.
 ```
 
 ---
@@ -387,16 +447,27 @@ POLIMENTO FINAL
 - Acessibilidade: contraste adequado, área de toque mínima de 44px, labels em todos os campos,
   navegação por teclado no desktop e aria-labels nos botões de ícone.
 - Otimizar imagens (lazy loading, srcset) e garantir que o app abra rápido em 4G.
+
+PRONTO QUANDO (o app está pronto para uso real):
+- Publicar cria o post com a imagem no storage e ele aparece no feed na hora.
+- Notificações chegam, marcam como lidas e o indicador da dock zera.
+- A busca retorna resultados reais do banco e os filtros funcionam.
+- Não existe nenhum TODO, alert(), texto "em breve" ou tela sem estado de vazio e erro.
+- Percorri o app inteiro como um usuário novo, do cadastro ao primeiro post, sem travar.
 ```
 
 ---
 
 ## Observações importantes para o Lovable
 
-- **Não invente cores fora da paleta.** O app é monocromático por decisão de design; azul
-  `#0071E3` e verde `#00E07A` só aparecem em selos e status.
+- **Não invente cores fora da paleta.** O app é preto, branco e vermelho `#FF1F17`, ponto.
+  Sem azul, sem verde, sem gradiente colorido — nem para status de sucesso ou erro. A única
+  cor fora disso vem das fotos dos carros.
 - **Nunca use avatar circular no card de descoberta** — ali a foto é sempre retangular 4:5.
 - **Os números técnicos são o produto.** WHP, torque, pressão e tempo de volta precisam estar
   sempre em destaque tipográfico, com números tabulares.
 - O app é **mobile-first**: desenhe para 390px de largura e só depois adapte para telas maiores.
+- **Funcional vale mais que bonito.** Se precisar escolher, entregue a funcionalidade
+  completa e simplifique o visual — nunca o contrário. Tela bonita que não faz nada
+  não conta como entregue.
 - Se algo ficar pesado, priorize nesta ordem: Feed → Descobrir → Perfil/Garagem → resto.
