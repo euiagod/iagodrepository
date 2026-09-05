@@ -7,7 +7,7 @@ import type { Car, Post, PublicProfile } from '../types'
 
 export function Profile() {
   const { username } = useParams<{ username: string }>()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [cars, setCars] = useState<Car[]>([])
   const [posts, setPosts] = useState<Post[]>([])
@@ -133,9 +133,17 @@ export function Profile() {
 
       <div className="flex gap-2 px-4 py-4">
         {profile.isMe ? (
-          <Link to="/garagem/editar" className="flex-1 rounded-full border border-[var(--border)] py-2 text-center text-sm font-semibold">
-            Editar perfil
-          </Link>
+          <>
+            <Link to="/garagem/editar" className="flex-1 rounded-full border border-[var(--border)] py-2 text-center text-sm font-semibold">
+              Editar perfil
+            </Link>
+            <button
+              onClick={() => logout()}
+              className="flex-1 rounded-full border border-[var(--border)] py-2 text-center text-sm font-semibold text-[var(--text-muted)]"
+            >
+              Sair
+            </button>
+          </>
         ) : (
           <>
             <button
