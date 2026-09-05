@@ -1,5 +1,7 @@
 import 'dotenv/config'
+import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
@@ -15,15 +17,21 @@ import { profilesRouter } from './routes/profiles.js'
 import { searchRouter } from './routes/search.js'
 import { uploadRouter } from './routes/upload.js'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 const app = express()
 const PORT = Number(process.env.PORT ?? 8787)
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR ?? './uploads')
+// server/dist/index.js -> ../../web/dist. Só existe quando o front foi
+// buildado (ex.: no deploy do Render, que serve tudo por este mesmo processo).
+const WEB_DIST = path.resolve(__dirname, '../../web/dist')
+const servingWebBuild = fs.existsSync(path.join(WEB_DIST, 'index.html'))
 
 app.set('trust proxy', 1)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
+    origin: process.env.CLIENT_ORIGIN ?? process.env.RENDER_EXTERNAL_URL ?? 'http://localhost:5173',
     credentials: true,
   }),
 )
@@ -54,6 +62,18 @@ app.use('/api/upload', uploadRouter)
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
+// Qualquer rota /api ou /uploads que não bateu em nenhum handler acima é um
+// 404 de API de verdade — nunca deve cair no fallback de SPA abaixo.
+app.use('/api', (_req, res) => res.status(404).json({ error: 'Rota não encontrada.' }))
+app.use('/uploads', (_req, res) => res.status(404).json({ error: 'Arquivo não encontrado.' }))
+
+if (servingWebBuild) {
+  app.use(express.static(WEB_DIST, { index: false, maxAge: '1y' }))
+  // Fallback de SPA: qualquer rota que não seja /api ou /uploads devolve o
+  // index.html e o React Router decide o que renderizar no cliente.
+  app.get('/{*splat}', (_req, res) => res.sendFile(path.join(WEB_DIST, 'index.html')))
+}
+
 // Handler de erro central: nunca vaza stack trace nem detalhe interno para o
 // cliente; sempre loga no servidor para investigação.
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -64,4 +84,5 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 app.listen(PORT, () => {
   console.log(`Cartel Club API rodando em http://localhost:${PORT}`)
+  console.log(servingWebBuild ? 'Servindo o build do frontend (web/dist).' : 'web/dist não encontrado — só API.')
 })

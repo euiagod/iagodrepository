@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { TopBar } from '../components/TopBar'
 import { PostCard } from '../components/PostCard'
+import { StoriesRow } from '../components/StoriesRow'
 import { api } from '../lib/api'
 import type { Post } from '../types'
 
@@ -67,12 +68,15 @@ export function Feed() {
     <div className="mx-auto max-w-md">
       <TopBar
         title="Cartel Club"
+        brand
         right={
           <Link to="/notificacoes" className="text-2xl">
             🔔
           </Link>
         }
       />
+
+      <StoriesRow />
 
       {loading && (
         <div className="flex flex-col gap-3 p-4">

@@ -99,6 +99,8 @@ export interface PostAuthor {
   avatarUrl: string | null
   type: ProfileType
   isVerified: boolean
+  isFollowedByMe: boolean
+  isMe: boolean
 }
 
 export interface PostCarSummary {
@@ -108,7 +110,10 @@ export interface PostCarSummary {
   model: string
   whp: number | null
   stage: string | null
+  torqueKgfm: number | null
+  boostBar: number | null
   dynoCertified: boolean
+  mods: CarMod[]
 }
 
 export interface Post {
@@ -139,6 +144,12 @@ export interface AppNotification {
   read: boolean
   createdAt: string
   actor: { username: string; displayName: string; avatarUrl: string | null } | null
+}
+
+export interface StoryProfile {
+  username: string
+  displayName: string
+  avatarUrl: string | null
 }
 
 export interface SessionUser {

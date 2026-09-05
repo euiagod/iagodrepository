@@ -6,6 +6,8 @@
   --surface-alt: #121212;
   --glass: rgba(255, 255, 255, 0.04);
   --glass-elevated: rgba(255, 255, 255, 0.08);
+  --glass-2-bg: rgba(20, 20, 20, 0.65);
+  --glass-3-bg: rgba(28, 28, 30, 0.78);
   --border: rgba(255, 255, 255, 0.08);
   --border-active: rgba(255, 255, 255, 0.22);
   --text: #ffffff;
@@ -14,6 +16,24 @@
   --brand: #ff1f17;
   --brand-deep: #c1110a;
   color-scheme: dark;
+}
+
+/* Nível 2 do design system: vidro flutuante com blur+saturação e uma
+   hairline em gradiente no topo — usado nos blocos de ficha técnica,
+   badges sobre foto e cards de telemetria. */
+.glass-panel {
+  background: var(--glass-2-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--border);
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Nível 3: modais e a dock de navegação flutuante. */
+.glass-dock {
+  background: var(--glass-3-bg);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
 }
 
 * {

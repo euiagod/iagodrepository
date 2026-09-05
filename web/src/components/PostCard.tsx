@@ -14,14 +14,25 @@ function timeAgo(iso: string) {
   return `há ${days}d`
 }
 
+async function share(post: Post) {
+  const url = `${window.location.origin}/post/${post.id}`
+  if (navigator.share) {
+    await navigator.share({ title: 'Cartel Club', text: post.caption ?? '', url }).catch(() => {})
+  } else {
+    await navigator.clipboard.writeText(url).catch(() => {})
+  }
+}
+
 export function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(post.likedByMe)
   const [likes, setLikes] = useState(post.likesCount)
-  const [busy, setBusy] = useState(false)
+  const [busyLike, setBusyLike] = useState(false)
+  const [following, setFollowing] = useState(post.author.isFollowedByMe)
+  const [busyFollow, setBusyFollow] = useState(false)
 
   async function toggleLike() {
-    if (busy) return
-    setBusy(true)
+    if (busyLike) return
+    setBusyLike(true)
     const next = !liked
     setLiked(next)
     setLikes((n) => n + (next ? 1 : -1))
@@ -35,22 +46,41 @@ export function PostCard({ post }: { post: Post }) {
       setLiked(!next)
       setLikes((n) => n + (next ? -1 : 1))
     } finally {
-      setBusy(false)
+      setBusyLike(false)
     }
   }
 
+  async function toggleFollow() {
+    if (busyFollow) return
+    setBusyFollow(true)
+    const next = !following
+    setFollowing(next)
+    try {
+      if (next) await api.post(`/profiles/${post.author.username}/follow`)
+      else await api.delete(`/profiles/${post.author.username}/follow`)
+    } catch {
+      setFollowing(!next)
+    } finally {
+      setBusyFollow(false)
+    }
+  }
+
+  const car = post.car
+
   return (
-    <article className="border-b border-[var(--border)] pb-3">
+    <article className="border-b border-[var(--border)] pb-4">
       <div className="flex items-center gap-3 px-4 py-3">
-        {post.author.avatarUrl ? (
-          <img src={post.author.avatarUrl} alt={post.author.displayName} className="h-9 w-9 rounded-full object-cover" />
-        ) : (
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-alt)] text-xs font-bold">
-            {post.author.displayName.slice(0, 1).toUpperCase()}
-          </div>
-        )}
+        <Link to={`/perfil/${post.author.username}`} className="shrink-0">
+          {post.author.avatarUrl ? (
+            <img src={post.author.avatarUrl} alt={post.author.displayName} className="h-10 w-10 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-alt)] text-sm font-bold">
+              {post.author.displayName.slice(0, 1).toUpperCase()}
+            </div>
+          )}
+        </Link>
         <div className="min-w-0 flex-1">
-          <Link to={`/perfil/${post.author.username}`} className="flex items-center gap-1 truncate text-sm font-semibold">
+          <Link to={`/perfil/${post.author.username}`} className="flex items-center gap-1 truncate text-sm font-bold">
             {post.author.displayName}
             {post.author.isVerified && <span className="text-[var(--brand)]">✓</span>}
           </Link>
@@ -59,30 +89,54 @@ export function PostCard({ post }: { post: Post }) {
             {post.location ? ` · ${post.location}` : ''} · {timeAgo(post.createdAt)}
           </p>
         </div>
+        {!post.author.isMe && (
+          <button
+            type="button"
+            onClick={toggleFollow}
+            disabled={busyFollow}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold ${
+              following ? 'border border-[var(--border-active)] text-[var(--text)]' : 'bg-white text-black'
+            }`}
+          >
+            {following ? 'Seguindo' : 'Seguir'}
+          </button>
+        )}
       </div>
 
-      {post.car && (
-        <Link
-          to={`/carro/${post.car.id}`}
-          className="mx-4 mb-2 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--glass)] px-3 py-2 text-xs"
-        >
-          <span className="truncate">
-            {post.car.brand} {post.car.model} — {post.car.nickname}
-          </span>
-          <span className="flex items-center gap-2 tabular-nums font-semibold text-[var(--text)]">
-            {post.car.dynoCertified && <span className="text-[var(--brand)]">DYNO</span>}
-            {post.car.whp ? `${post.car.whp} whp` : post.car.stage}
-          </span>
-        </Link>
-      )}
-
       {post.media[0] && (
-        <button type="button" onDoubleClick={() => !liked && toggleLike()} className="block w-full" aria-label="Curtir com duplo toque">
-          <img src={post.media[0].url} alt={post.caption ?? ''} className="aspect-square w-full object-cover" loading="lazy" />
-        </button>
+        <div className="relative">
+          <button type="button" onDoubleClick={() => !liked && toggleLike()} className="block w-full" aria-label="Curtir com duplo toque">
+            <img src={post.media[0].url} alt={post.caption ?? ''} className="aspect-[4/5] w-full object-cover" loading="lazy" />
+          </button>
+
+          {car && (car.dynoCertified || car.stage) && (
+            <div className="pointer-events-none absolute left-3 top-3 flex gap-1.5">
+              {car.dynoCertified && (
+                <span className="glass-panel rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                  Dyno Certified
+                </span>
+              )}
+              {car.stage && (
+                <span className="glass-panel rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                  {car.stage}
+                </span>
+              )}
+            </div>
+          )}
+
+          {car?.whp && (
+            <Link
+              to={`/carro/${car.id}`}
+              className="glass-dock absolute bottom-3 right-3 rounded-full border border-[var(--border-active)] px-3 py-1.5"
+            >
+              <span className="tabular-nums text-base font-extrabold text-white">{car.whp}</span>
+              <span className="ml-1 text-[10px] font-semibold uppercase text-[var(--text-muted)]">whp</span>
+            </Link>
+          )}
+        </div>
       )}
 
-      <div className="flex items-center gap-4 px-4 pt-2 text-xl">
+      <div className="flex items-center gap-4 px-4 pt-3 text-2xl">
         <button
           type="button"
           onClick={toggleLike}
@@ -92,15 +146,47 @@ export function PostCard({ post }: { post: Post }) {
         >
           {liked ? '❤️' : '🤍'}
         </button>
-        <Link to={`/post/${post.id}`} className="text-xl">
+        <Link to={`/post/${post.id}`} aria-label="Comentar">
           💬
         </Link>
+        <button type="button" onClick={() => share(post)} aria-label="Compartilhar">
+          ↗️
+        </button>
       </div>
 
-      <p className="tabular-nums px-4 pt-1 text-sm font-semibold">{likes} curtidas</p>
+      <p className="tabular-nums px-4 pt-2 text-sm font-bold">{likes} curtidas</p>
+
+      {car && (car.whp || car.torqueKgfm || car.boostBar) && (
+        <div className="glass-panel mx-4 mt-3 rounded-2xl px-4 py-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+              Ficha técnica do projeto
+            </p>
+            <Link to={`/carro/${car.id}`} className="text-[10px] font-semibold text-[var(--text-muted)] underline">
+              ver tudo
+            </Link>
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {car.whp !== null && <Metric label="Potência" value={`${car.whp}`} unit="whp" />}
+            {car.torqueKgfm !== null && <Metric label="Torque" value={`${car.torqueKgfm}`} unit="kgfm" />}
+            {car.boostBar !== null && <Metric label="Pressão" value={`${car.boostBar}`} unit="bar" />}
+          </div>
+        </div>
+      )}
+
+      {car && car.mods.length > 0 && (
+        <div className="mx-4 mt-3 flex flex-wrap gap-1.5">
+          {car.mods.map((m) => (
+            <span key={m.id} className="rounded-full border border-[var(--border)] bg-[var(--glass)] px-2.5 py-1 text-[11px] font-semibold">
+              {m.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       {post.caption && (
-        <p className="px-4 text-sm">
-          <span className="font-semibold">{post.author.username}</span>{' '}
+        <p className="px-4 pt-3 text-sm">
+          <span className="font-bold">{post.author.username}</span>{' '}
           <span className="text-[var(--text-muted)]">{post.caption}</span>
         </p>
       )}
@@ -110,5 +196,16 @@ export function PostCard({ post }: { post: Post }) {
         </Link>
       )}
     </article>
+  )
+}
+
+function Metric({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{label}</p>
+      <p className="tabular-nums text-sm font-extrabold text-white">
+        {value} <span className="text-[10px] font-semibold text-[var(--text-muted)]">{unit}</span>
+      </p>
+    </div>
   )
 }

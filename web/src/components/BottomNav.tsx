@@ -34,7 +34,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-2">
-      <ul className="mx-auto flex max-w-md items-center justify-between gap-1 rounded-full border border-[var(--border-active)] bg-[rgba(15,15,15,0.85)] px-3 py-2 backdrop-blur-2xl mx-4">
+      <ul className="glass-dock mx-4 flex max-w-md items-center justify-between gap-1 rounded-full border border-[var(--border-active)] px-3 py-2 shadow-[0_20px_48px_rgba(0,0,0,0.6)] md:mx-auto">
         {items.map((item) => (
           <li key={item.to} className="relative">
             <NavLink

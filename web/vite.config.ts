@@ -50,6 +50,10 @@ export default defineConfig({
     }),
   ],
   server: {
+    // Dev-only: permite acessar o servidor de desenvolvimento por um domínio
+    // de túnel (localtunnel/ngrok/etc.) em vez de só localhost. Não afeta o
+    // build de produção (isso é config do dev server, nunca do `vite build`).
+    allowedHosts: true,
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: true },
       '/uploads': { target: API_TARGET, changeOrigin: true },

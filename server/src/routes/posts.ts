@@ -18,7 +18,8 @@ const POST_SELECT = `
     pr.username AS author_username, pr.display_name AS author_display_name,
     pr.avatar_url AS author_avatar_url, pr.type AS author_type, pr.is_verified AS author_verified,
     c.nickname AS car_nickname, c.brand AS car_brand, c.model AS car_model,
-    c.whp AS car_whp, c.stage AS car_stage,
+    c.whp AS car_whp, c.stage AS car_stage, c.torque_kgfm AS car_torque_kgfm,
+    c.boost_bar AS car_boost_bar,
     (SELECT count(*)::int FROM likes l WHERE l.post_id = p.id) AS likes_count,
     (SELECT count(*)::int FROM comments cm WHERE cm.post_id = p.id) AS comments_count
   FROM posts p
@@ -29,8 +30,10 @@ const POST_SELECT = `
 async function attachMediaAndLikes(rows: Record<string, unknown>[], userId?: string) {
   if (!rows.length) return []
   const ids = rows.map((r) => r.id)
+  const carIds = rows.map((r) => r.car_id).filter(Boolean)
+  const authorIds = [...new Set(rows.map((r) => r.author_id))]
 
-  const [mediaResult, likedResult, dynoResult] = await Promise.all([
+  const [mediaResult, likedResult, dynoResult, modsResult, followingResult] = await Promise.all([
     pool.query('SELECT post_id, url, position FROM post_media WHERE post_id = ANY($1) ORDER BY position', [
       ids,
     ]),
@@ -40,8 +43,17 @@ async function attachMediaAndLikes(rows: Record<string, unknown>[], userId?: str
     pool.query(
       `SELECT DISTINCT ON (car_id) car_id FROM dyno_certificates
        WHERE car_id = ANY($1) AND status = 'homologado'`,
-      [rows.map((r) => r.car_id).filter(Boolean)],
+      [carIds],
     ),
+    pool.query('SELECT car_id, id, category, label FROM car_mods WHERE car_id = ANY($1) ORDER BY category', [
+      carIds,
+    ]),
+    userId
+      ? pool.query('SELECT following_id FROM follows WHERE follower_id = $1 AND following_id = ANY($2)', [
+          userId,
+          authorIds,
+        ])
+      : Promise.resolve({ rows: [] as { following_id: string }[] }),
   ])
 
   const mediaByPost = new Map<string, { url: string; position: number }[]>()
@@ -50,8 +62,15 @@ async function attachMediaAndLikes(rows: Record<string, unknown>[], userId?: str
     list.push({ url: m.url, position: m.position })
     mediaByPost.set(m.post_id, list)
   }
+  const modsByCar = new Map<string, { id: string; category: string; label: string }[]>()
+  for (const m of modsResult.rows) {
+    const list = modsByCar.get(m.car_id) ?? []
+    list.push({ id: m.id, category: m.category, label: m.label })
+    modsByCar.set(m.car_id, list)
+  }
   const likedSet = new Set(likedResult.rows.map((r) => r.post_id))
   const dynoCars = new Set(dynoResult.rows.map((r) => r.car_id))
+  const followingSet = new Set(followingResult.rows.map((r) => r.following_id))
 
   return rows.map((r: Record<string, unknown>) => ({
     id: r.id,
@@ -65,6 +84,8 @@ async function attachMediaAndLikes(rows: Record<string, unknown>[], userId?: str
       avatarUrl: r.author_avatar_url,
       type: r.author_type,
       isVerified: r.author_verified,
+      isFollowedByMe: followingSet.has(r.author_id as string),
+      isMe: userId === r.author_id,
     },
     car: r.car_id
       ? {
@@ -74,7 +95,10 @@ async function attachMediaAndLikes(rows: Record<string, unknown>[], userId?: str
           model: r.car_model,
           whp: r.car_whp,
           stage: r.car_stage,
-          dynoCertified: dynoCars.has(r.car_id),
+          torqueKgfm: r.car_torque_kgfm !== null ? Number(r.car_torque_kgfm) : null,
+          boostBar: r.car_boost_bar !== null ? Number(r.car_boost_bar) : null,
+          dynoCertified: dynoCars.has(r.car_id as string),
+          mods: modsByCar.get(r.car_id as string) ?? [],
         }
       : null,
     media: mediaByPost.get(r.id as string) ?? [],

@@ -170,6 +170,28 @@ profilesRouter.get('/:username', attachUserIfPresent, async (req, res) => {
   })
 })
 
+// Lista enxuta de quem a sessão atual segue — usada na fileira de stories do
+// feed. Não reaproveita toPublicProfile de propósito: aqui só interessam os
+// campos que aparecem num avatar de story.
+profilesRouter.get('/me/following', requireAuth, async (req, res) => {
+  const result = await pool.query(
+    `SELECT p.username, p.display_name, p.avatar_url
+     FROM follows f
+     JOIN profiles p ON p.user_id = f.following_id
+     WHERE f.follower_id = $1
+     ORDER BY f.created_at DESC
+     LIMIT 30`,
+    [req.userId],
+  )
+  res.json(
+    result.rows.map((r) => ({
+      username: r.username,
+      displayName: r.display_name,
+      avatarUrl: r.avatar_url,
+    })),
+  )
+})
+
 // --- follow ---
 
 profilesRouter.post('/:username/follow', requireAuth, async (req, res) => {

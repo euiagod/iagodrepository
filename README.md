@@ -51,6 +51,33 @@ npm run dev       # http://localhost:5173 — proxya /api e /uploads para o back
 
 Abra `http://localhost:5173`, crie uma conta e siga o onboarding.
 
+## Deploy com link público (Render)
+
+O jeito mais rápido de ter um link de verdade pra usar em qualquer navegador. O repositório já
+tem `render.yaml` configurado — um único serviço web (que serve a API e o frontend buildado
+juntos, no mesmo processo) mais um banco Postgres, ambos no plano gratuito.
+
+1. Faça login em [render.com](https://render.com) (dá pra entrar direto com a conta do GitHub).
+2. No dashboard, **New +** → **Blueprint**.
+3. Selecione o repositório `euiagod/iagodrepository` e a branch onde está este código.
+4. O Render lê o `render.yaml` sozinho e mostra o que vai criar: o serviço `cartel-club` e o
+   banco `cartel-club-db`. Confirme.
+5. Aguarde o build (uns 3–5 minutos). O Render aplica a migração e já cria 3 contas de
+   demonstração automaticamente ao subir (senha `senha1234`: `rafa@teste.com`,
+   `garagem@teste.com`, `bia@teste.com`).
+6. Quando o deploy terminar, o Render te dá uma URL tipo `https://cartel-club-xxxx.onrender.com`
+   — abre em qualquer navegador ou celular, e dá pra "Adicionar à tela de início" (é uma PWA).
+
+**Duas limitações do plano gratuito que vale saber:**
+- O serviço "dorme" depois de um tempo sem uso e demora uns 30-50s pra acordar no primeiro
+  acesso — normal do free tier, não é bug.
+- Sem disco persistente no plano gratuito: fotos enviadas somem se o serviço reiniciar ou for
+  redeployado. Para produção de verdade, troque `server/src/routes/upload.ts` por um bucket
+  (S3, R2, Supabase Storage) — o resto do app não muda.
+
+Pra desligar as contas de demonstração num deploy futuro, edite `server/package.json` e tire o
+`node dist/db/seed.js` do script `start:prod`.
+
 ## Segurança — o que já está implementado
 
 - **Autorização em toda escrita**: o dono de um recurso é sempre derivado da sessão
