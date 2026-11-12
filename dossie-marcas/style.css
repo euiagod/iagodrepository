@@ -108,3 +108,5 @@ mark{background:var(--pink);color:#fff;border-radius:4px;padding:0 2px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 input[type=search]::-webkit-search-cancel-button{display:none}
+
+.note{background:var(--surface2);border-left:4px solid #f0b429;border-radius:0 10px 10px 0;padding:8px 14px;font-size:.88rem;color:var(--muted);margin:.4rem 0 1rem!important}

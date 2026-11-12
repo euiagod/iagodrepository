@@ -16,7 +16,7 @@ const blocks = []; // {brand, id, title, html, text, el}
 D.brands.forEach(b=>b.sections.forEach(s=>blocks.push({brand:b.id,bname:b.name,id:s.id,title:s.title,html:cites(s.html)})));
 const cmp = D.compare;
 const tableHtml = `<div class="tablewrap"><table><thead><tr>${cmp.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${
-  cmp.rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`+cmp.html;
+  cmp.rows.map(r=>`<tr>${r.map(c=>`<td>${cites(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`+cmp.html;
 blocks.push({brand:'comparativo',bname:'Comparativo',id:'comparativo',title:cmp.title,html:tableHtml});
 blocks.forEach(b=>{const d=document.createElement('div');d.innerHTML=b.html;b.text=norm(b.title+' '+b.bname+' '+d.textContent);});
 
