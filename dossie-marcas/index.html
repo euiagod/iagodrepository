@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dossiê Zee.Dog × Duolingo</title>
+<meta name="description" content="Dossiê pesquisável e podcast de 1 minuto sobre as marcas Zee.Dog e Duolingo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23333'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%23e8479f' stroke-width='4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#conteudo">Ir para o conteúdo</a>
+
+<header class="top">
+  <div class="logo" aria-label="design intelligence">design<br>intelligence</div>
+  <div class="searchbox">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="q" type="search" placeholder="Pesquisar no dossiê… (ex.: Petz, streak, franquia)" autocomplete="off" aria-label="Pesquisar no dossiê">
+    <kbd id="kbd">/</kbd>
+    <button id="clear" class="ghost" hidden aria-label="Limpar busca">✕</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" aria-label="Fontes e navegação">
+    <h2 class="eyebrow">Fontes do notebook</h2>
+    <ul class="srcs" id="srcToggles"></ul>
+    <h2 class="eyebrow">Atalhos</h2>
+    <nav class="jump" id="jump"></nav>
+    <details class="refs" open>
+      <summary class="eyebrow">Referências <span id="refCount"></span></summary>
+      <ol id="refList"></ol>
+    </details>
+  </aside>
+
+  <main id="conteudo">
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">Dossiê de marcas · 2026</p>
+        <h1>Zee.Dog <span class="x">×</span> Duolingo</h1>
+        <p class="lead">Duas marcas que transformaram um produto banal (coleira, curso de idiomas) em comunidade e personagem. Leia, pesquise ou ouça em 1 minuto.</p>
+        <div class="cta">
+          <button class="btn" id="goPod">▶ Ouvir os podcasts</button>
+          <span class="muted">Cada fato traz um número de fonte <sup class="cite">[n]</sup>. Itens com <span class="flag">a confirmar</span> não foram verificados.</span>
+        </div>
+      </div>
+      <div class="vert" aria-hidden="true">DOSSIÊ</div>
+    </section>
+
+    <section id="podcast" class="podcast" aria-labelledby="podTitle">
+      <div class="sec-head"><p class="eyebrow">Audio overview</p><h2 id="podTitle">Podcast · 1 minuto por marca</h2></div>
+      <p class="muted small" id="voiceNote"></p>
+      <div class="pod-grid" id="podGrid"></div>
+    </section>
+
+    <div id="results" class="results" role="status" aria-live="polite" hidden></div>
+    <div id="cards"></div>
+    <div id="empty" class="empty" hidden>Nada encontrado. Tente um termo mais simples, como “Petz” ou “streak”.</div>
+
+    <footer class="foot">
+      <p>Dossiê compilado a partir de fontes públicas listadas ao lado. Números mudam com o tempo: confirme na fonte antes de usar em material oficial.</p>
+      <p class="logo small">design intelligence</p>
+    </footer>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
